@@ -23,20 +23,21 @@ class connection():
            'bool':'boolean'
            }
         
-        def create_dict(df):
-            dct = {}
-            for n,i in enumerate(df.dtypes):
-                dct[df.columns[n]] = [str(i),str(max([len(x) for x in df[df.columns[n]].astype(str)]))]
-            return dct
+        def get_length(df, column):
+            return str(max([len(str(x)) for x in df[column]]))
+
+        def get_type(df, column):
+            return self.key[str(df[column].dtypes)]
         
-        self.dct = create_dict(self.data)
-        self.create = "DROP TABLE IF EXISTS "+self.table+" CASCADE; CREATE TABLE "+self.table+"("+ \
-            ', '.join([item+' '+self.key[self.dct[item][0]]+'('+self.dct[item][1]+')' 
-            if ((self.key[self.dct[item][0]]!='date')&(self.key[self.dct[item][0]]!='int')) 
-            else item+' '+self.key[self.dct[item][0]] for item in self.data.columns]) \
-            +');'
+        self.drop = "DROP TABLE IF EXISTS "+self.table+" CASCADE;"
+        self.create = "CREATE TABLE "+self.table+"("+ \
+                ', '.join([column +' '+ get_type(self.data, column) +'({})'.format(get_length(self.data, column)) \
+                if (get_type(self.data, column)!='date')&(get_type(self.data, column)!='int') \
+                else column +' '+ get_type(self.data, column) \
+                for column in self.data.columns]) +');'
+        self.statement = ' '.join([self.drop, self.create])
         with self.conn.cursor() as c:
-            c.execute(self.create)
+            c.execute(self.statement)
             self.conn.commit()
     
     def fill_table(self, table, data):
